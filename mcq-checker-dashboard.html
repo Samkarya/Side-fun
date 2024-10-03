@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced MCQ Review Interface</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.2/ace.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0 auto;
+            padding: 20px;
+            max-width: 1200px;
+            line-height: 1.6;
+        }
+        .question-card {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            position: relative;
+            transition: background-color 0.3s ease;
+        }
+        .options {
+            margin-left: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            margin: 10px 5px 10px 0;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            transition: background-color 0.3s ease;
+        }
+        #editor {
+            height: 300px;
+            border: 1px solid #ccc;
+            margin-bottom: 20px;
+        }
+        .review-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .status-buttons button {
+            margin-left: 10px;
+        }
+        .approved {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .rejected {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        .pending {
+            background-color: #fff3cd;
+            border-color: #ffeeba;
+        }
+        .loading-section {
+            margin-bottom: 15px;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 15px;
+        }
+        #fileInput, #urlInput {
+            margin-right: 10px;
+            margin-bottom: 10px;
+            width: 60%;
+            padding: 5px;
+        }
+        .error { color: #dc3545; }
+        .success { color: #28a745; }
+        
+        .edit-form {
+            display: none;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        .edit-form.active {
+            display: block;
+        }
+        .edit-form input[type="text"],
+        .edit-form textarea {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+        }
+        .edit-form .options-container {
+            margin-bottom: 10px;
+        }
+        .edit-form .option-row {
+            display: flex;
+            margin-bottom: 5px;
+        }
+        .edit-form .option-row input {
+            flex-grow: 1;
+            margin-right: 5px;
+        }
+        .action-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        .add-remove-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .status-label {
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .filter-buttons {
+            margin-bottom: 15px;
+        }
+        .filter-buttons button {
+            background-color: #f8f9fa;
+            color: #212529;
+            border: 1px solid #ced4da;
+        }
+        .filter-buttons button.active {
+            background-color: #007bff;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <h1>Enhanced MCQ Review Interface</h1>
+    
+    <div id="loadingSection">
+        <div class="loading-section">
+            <h2>Load MCQs from URL</h2>
+            <input type="text" id="urlInput" placeholder="https://example.com/mcqs.js">
+            <button onclick="loadFromURL()">Load from URL</button>
+            <div id="urlError" class="error"></div>
+            <div id="urlSuccess" class="success"></div>
+        </div>
+
+        <div class="loading-section">
+            <h2>Load MCQs from File</h2>
+            <input type="file" id="fileInput" accept=".js,.json,.txt">
+            <button onclick="loadFromFile()">Load from File</button>
+            <div id="fileError" class="error"></div>
+        </div>
+
+        <div class="loading-section">
+            <h2>Sample Data</h2>
+            <button onclick="loadSampleData()">Load Sample Data</button>
+        </div>
+    </div>
+
+    <div class="action-buttons">
+        <button onclick="addNewQuestion()">Add New Question</button>
+        <button onclick="updateMCQsFromEditor()">Update MCQs from Editor</button>
+    </div>
+
+    <h2>MCQs Editor</h2>
+    <div id="editor"></div>
+    <button onclick="updatePreview()">Update Preview</button>
+
+    <h2>Preview and Review</h2>
+    <div class="filter-buttons">
+        <button onclick="filterQuestions('all')" class="active">All</button>
+        <button onclick="filterQuestions('pending')">Pending</button>
+        <button onclick="filterQuestions('approved')">Approved</button>
+        <button onclick="filterQuestions('rejected')">Rejected</button>
+    </div>
+    <div id="previewArea"></div>
+
+    <h2>Reviewed MCQs</h2>
+    <pre id="reviewedMcqs"></pre>
+
+    <script>
+        const editor = ace.edit("editor");
+        editor.setTheme("ace/theme/monokai");
+        editor.session.setMode("ace/mode/javascript");
+
+        let currentMcqs = [];
+        let currentFilter = 'all';
+
+        const sampleMcqs = `[
+    {
+        question: "Sample Question 1?",
+        options: ["Option 1", "Option 2", "Option 3", "Option 4"],
+        answer: "A. Option 1",
+        explanation: "This is a sample explanation for question 1.",
+        status: "pending"
+    },
+    {
+        question: "Sample Question 2?",
+        options: ["Option 1", "Option 2", "Option 3", "Option 4"],
+        answer: "B. Option 2",
+        explanation: "This is a sample explanation for question 2.",
+        status: "pending"
+    }
+]`;
+
+        function addNewQuestion() {
+            const newQuestion = {
+                question: "New Question?",
+                options: ["Option 1", "Option 2", "Option 3", "Option 4"],
+                answer: "A. Option 1",
+                explanation: "Explanation for the new question.",
+                status: "pending"
+            };
+            
+            currentMcqs.push(newQuestion);
+            updateEditorContent();
+            updatePreview();
+        }
+
+        function createEditForm(mcq, index) {
+            return `
+                <div class="edit-form" id="editForm${index}">
+                    <h3>Edit Question ${index + 1}</h3>
+                    <label for="question${index}">Question:</label>
+                    <input type="text" id="question${index}" value="${mcq.question}" />
+                    
+                    <div class="options-container" id="optionsContainer${index}">
+                        <label>Options:</label>
+                        ${mcq.options.map((option, i) => `
+                            <div class="option-row">
+                                <input type="text" id="option${index}_${i}" value="${option}" />
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="add-remove-buttons">
+                        <button onclick="addOption(${index})">Add Option</button>
+                        <button onclick="removeOption(${index})">Remove Option</button>
+                    </div>
+                    
+                    <label for="answer${index}">Answer:</label>
+                    <input type="text" id="answer${index}" value="${mcq.answer}" />
+                    
+                    <label for="explanation${index}">Explanation:</label>
+                    <textarea id="explanation${index}" rows="3">${mcq.explanation}</textarea>
+                    
+                    <div class="action-buttons">
+                        <button onclick="saveQuestion(${index})">Save Changes</button>
+                        <button onclick="cancelEdit(${index})">Cancel</button>
+                        <button onclick="deleteQuestion(${index})">Delete Question</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleEditForm(index) {
+            const form = document.getElementById(`editForm${index}`);
+            form.classList.toggle('active');
+        }
+
+        function addOption(index) {
+            const container = document.getElementById(`optionsContainer${index}`);
+            const optionCount = container.getElementsByClassName('option-row').length;
+            const newRow = document.createElement('div');
+            newRow.className = 'option-row';
+            newRow.innerHTML = `<input type="text" id="option${index}_${optionCount}" value="New Option" />`;
+            container.appendChild(newRow);
+        }
+
+        function removeOption(index) {
+            const container = document.getElementById(`optionsContainer${index}`);
+            const options = container.getElementsByClassName('option-row');
+            if (options.length > 2) {
+                container.removeChild(options[options.length - 1]);
+            }
+        }
+
+        function saveQuestion(index) {
+            const question = document.getElementById(`question${index}`).value;
+            const options = Array.from(document.getElementById(`optionsContainer${index}`).getElementsByTagName('input')).map(input => input.value);
+            const answer = document.getElementById(`answer${index}`).value;
+            const explanation = document.getElementById(`explanation${index}`).value;
+
+            currentMcqs[index] = {
+                ...currentMcqs[index],
+                question,
+                options,
+                answer,
+                explanation,
+                status: "pending" // Reset status to pending after edit
+            };
+
+            updateEditorContent();
+            updatePreview();
+        }
+
+        function cancelEdit(index) {
+            toggleEditForm(index);
+        }
+
+        function deleteQuestion(index) {
+            if (confirm('Are you sure you want to delete this question?')) {
+                currentMcqs.splice(index, 1);
+                updateEditorContent();
+                updatePreview();
+            }
+        }
+
+        function updateEditorContent() {
+            editor.setValue(JSON.stringify(currentMcqs, null, 2));
+        }
+
+        function updateMCQsFromEditor() {
+            try {
+                const editorContent = editor.getValue();
+                currentMcqs = JSON.parse(editorContent);
+                updatePreview();
+            } catch (error) {
+                alert('Error updating MCQs from editor: ' + error.message);
+            }
+        }
+
+        async function loadFromURL() {
+            const urlInput = document.getElementById('urlInput');
+            const url = urlInput.value.trim();
+            const errorElement = document.getElementById('urlError');
+            const successElement = document.getElementById('urlSuccess');
+            
+            errorElement.textContent = '';
+            successElement.textContent = '';
+
+            if (!url) {
+                errorElement.textContent = 'Please enter a URL';
+                return;
+            }
+
+            try {
+                successElement.textContent = 'Loading...';
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Network response was not ok');
+                
+                let content = await response.text();
+                
+                let mcqsData;
+                if (content.includes('export const mcqs =')) {
+                    mcqsData = eval(`(${content.replace('export const mcqs =', '')})`);
+                } else if (content.includes('export default')) {
+                    mcqsData = eval(`(${content.replace('export default', '')})`);
+                } else {
+                    mcqsData = JSON.parse(content);
+                }
+
+                if (!Array.isArray(mcqsData)) throw new Error('Data must be an array');
+                mcqsData.forEach((mcq, index) => {
+                    if (!mcq.question || !mcq.options || !mcq.answer || !mcq.explanation) {
+                        throw new Error(`Invalid question structure at index ${index}`);
+                    }
+                    mcq.status = mcq.status || "pending";
+                });
+
+                currentMcqs = mcqsData;
+                updateEditorContent();
+                successElement.textContent = 'MCQs loaded successfully!';
+                updatePreview();
+            } catch (error) {
+                errorElement.textContent = `Error loading MCQs: ${error.message}`;
+                console.error('Error:', error);
+            }
+        }
+
+        function loadSampleData() {
+            currentMcqs = JSON.parse(sampleMcqs);
+            updateEditorContent();
+            updatePreview();
+        }
+
+        function loadFromFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            const errorElement = document.getElementById('fileError');
+            
+            if (!file) {
+                errorElement.textContent = 'Please select a file first.';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const content = e.target.result;
+                    let mcqsData;
+                    if (content.includes('export const mcqs =')) {
+                        mcqsData = eval(`(${content.replace('export const mcqs =', '')})`);
+                    } else {
+                        mcqsData = JSON.parse(content);
+                    }
+                    
+                    if (!Array.isArray(mcqsData)) throw new Error('Data must be an array');
+                    mcqsData.forEach((mcq, index) => {
+                        if (!mcq.question || !mcq.options || !mcq.answer || !mcq.explanation) {
+                            throw new Error(`Invalid question structure at index ${index}`);
+                        }
+                        mcq.status = mcq.status || "pending";
+                    });
+
+                    currentMcqs = mcqsData;
+                    updateEditorContent();
+                    errorElement.textContent = '';
+                    updatePreview();
+                } catch (error) {
+                    errorElement.textContent = `Error loading file: ${error.message}`;
+                    console.error(error);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function updatePreview() {
+            const previewArea = document.getElementById('previewArea');
+            previewArea.innerHTML = '';
+
+            currentMcqs.forEach((mcq, index) => {
+                if (currentFilter !== 'all' && mcq.status !== currentFilter) return;
+                const card = document.createElement('div');
+                card.className = `question-card ${mcq.status}`;
+                card.innerHTML = `
+                    <div class="review-status">
+                        <h3>Question ${index + 1}</h3>
+                        <div class="status-label">${mcq.status.toUpperCase()}</div>
+                        <div class="status-buttons">
+                            <button onclick="approveQuestion(${index})">Approve</button>
+                            <button onclick="rejectQuestion(${index})">Reject</button>
+                            <button onclick="toggleEditForm(${index})">Edit</button>
+                        </div>
+                    </div>
+                    <p><strong>Question:</strong> ${mcq.question}</p>
+                    <div class="options">
+                        ${mcq.options.map((option, i) => `
+                            <p>${String.fromCharCode(65 + i)}. ${option}</p>
+                        `).join('')}
+                    </div>
+                    <p><strong>Answer:</strong> ${mcq.answer}</p>
+                    <p><strong>Explanation:</strong> ${mcq.explanation}</p>
+                    ${createEditForm(mcq, index)}
+                `;
+                previewArea.appendChild(card);
+            });
+        }
+
+        function approveQuestion(index) {
+            currentMcqs[index].status = 'approved';
+            updateEditorContent();
+            updatePreview();
+        }
+
+        function rejectQuestion(index) {
+            currentMcqs[index].status = 'rejected';
+            updateEditorContent();
+            updatePreview();
+        }
+
+        function filterQuestions(status) {
+            currentFilter = status;
+            document.querySelectorAll('.filter-buttons button').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`.filter-buttons button[onclick="filterQuestions('${status}')"]`).classList.add('active');
+            updatePreview();
+        }
+
+        function exportReviewedMcqs() {
+            const reviewedMcqs = currentMcqs.filter(mcq => mcq.status !== 'pending');
+            const reviewedMcqsElement = document.getElementById('reviewedMcqs');
+            reviewedMcqsElement.textContent = JSON.stringify(reviewedMcqs, null, 2);
+        }
+
+        // Initialize the interface
+        loadSampleData();
+        updatePreview();
+
+        // Add event listener for editor changes
+        editor.getSession().on('change', () => {
+            document.getElementById('urlSuccess').textContent = '';
+            document.getElementById('urlError').textContent = '';
+            document.getElementById('fileError').textContent = '';
+        });
+    </script>
+</body>
+</html>
