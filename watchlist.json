@@ -1,10 +1,20 @@
 [
   {
     "type": "movie",
+    "name": "Bahubali",
     "id": "tt2631186",
     "season": null,
     "episode": null,
     "status": "Watching",
     "date": "2024-10-09T16:34:14.134Z"
-  }
+  },
+  {
+  "type": "movie",
+  "name": "Bahubali 2",
+  "id": "tt4849438",
+  "season": null,
+  "episode": null,
+  "status": "Watching",
+  "date": "2024-10-09T16:59:15.517Z"
+}
 ]
