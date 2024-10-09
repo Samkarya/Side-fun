@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie and TV Show Tracker - Enhanced</title>
+<link rel="stylesheet" href="https://samkarya.github.io/Side-fun/Movie-Tracker/styles.css"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Movie and TV Show Tracker</h1>
+            <div class="storage-toggle">
+                <label for="storageToggle">Use Local Storage:</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="storageToggle" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </header>
+        
+        <main>
+            <section class="add-form-section">
+                <h2>Add New Content</h2>
+                <form id="addForm" class="add-form">
+                    <div class="form-group">
+                        <label for="type">Type:</label>
+                        <select id="type" required>
+                            <option value="tv">TV Show</option>
+                            <option value="movie">Movie</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="name">Name:</label>
+                        <div class="suggestion-dropdown">
+                            <input type="text" id="name" required>
+                            <div class="suggestions" id="nameSuggestions"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="id">ID:</label>
+                        <input type="text" id="id" required>
+                    </div>
+                    
+                    <div id="tvFields" class="tv-fields">
+                        <div class="form-group">
+                            <label for="season">Season:</label>
+                            <input type="number" id="season" min="1">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="episode">Episode:</label>
+                            <input type="number" id="episode" min="1">
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Add to Watch List</button>
+                </form>
+            </section>
+            
+            <section class="watch-list-section">
+                <div class="section-header">
+                    <h2>Watch List</h2>
+                    <div class="action-buttons">
+                        <button id="exportBtn" class="btn btn-secondary">Export to JSON</button>
+                    </div>
+                </div>
+                <ul id="watchList" class="watch-list"></ul>
+            </section>
+            
+            <section class="chart-section">
+                <div class="chart-container" id="chartContainer">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </section>
+            
+            <section class="import-section">
+                <h2>Import Watch List</h2>
+                <form id="importForm" class="import-form">
+                    <div class="form-group">
+                        <label for="githubUrl">GitHub JSON URL:</label>
+                        <input type="url" id="githubUrl" placeholder="https://samkarya.github.io/Side-fun/watchlist.json">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="fileInput">Or upload JSON file:</label>
+                        <input type="file" id="fileInput" accept=".json">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Import</button>
+                </form>
+            </section>
+
+            <section class="iframe-section">
+                <h2>Data Visualization</h2>
+                <div class="iframe-container">
+                    <iframe id="dataFrame" src="about:blank"></iframe>
+                </div>
+            </section>
+            <section class="dynamic-iframe-section">
+                <h2>Content Preview</h2>
+                <div class="iframe-container">
+                    <iframe id="dynamicFrame" src="about:blank"></iframe>
+                    <button id="fullscreenBtn" class="btn btn-secondary fullscreen-btn">Fullscreen</button>
+                </div>
+            </section>
+            
+            
+        </main>
+    </div>
+<script src='https://samkarya.github.io/Side-fun/Movie-Tracker/scripts.js'></script>
+
+</body>
+</html>
