@@ -14,7 +14,16 @@
   "id": "tt4849438",
   "season": null,
   "episode": null,
-  "status": "Watching",
+  "status": "Watched",
   "date": "2024-10-09T16:59:15.517Z"
+},
+  {
+  "type": "movie",
+  "name": "The Strangers: Chapter 1",
+  "id": "tt22050754",
+  "season": null,
+  "episode": null,
+  "status": "Watched",
+  "date": "2024-10-10T15:01:06.648Z"
 }
 ]
