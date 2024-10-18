@@ -61,5 +61,14 @@
   "episode": null,
   "status": "Watched",
   "date": "2024-10-13T17:21:16.846Z"
+},
+{
+  "type": "movie",
+  "name": "Kakuda",
+  "id": "tt15181064",
+  "season": null,
+  "episode": null,
+  "status": "Watched",
+  "date": "2024-10-18T16:15:59.653Z"
 }
 ]
